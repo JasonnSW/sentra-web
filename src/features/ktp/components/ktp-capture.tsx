@@ -259,7 +259,14 @@ export function KtpCapture() {
       !videoRef.current
     )
       return;
+
     setIsCapturing(true);
+
+    // Stop frame sending immediately
+    if (frameIntervalRef.current) {
+      clearTimeout(frameIntervalRef.current);
+      frameIntervalRef.current = null;
+    }
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -310,21 +317,21 @@ export function KtpCapture() {
         return;
       }
 
-      const toBase64 = (blob: Blob): Promise<string> =>
-        new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(blob);
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-        });
-
-      const base64 = await toBase64(blob);
-      setBase64Image(base64);
-      console.log(base64Image);
-      const formData = new FormData();
-      formData.append("image", blob, "ktp.jpeg");
-
       try {
+        const toBase64 = (blob: Blob): Promise<string> =>
+          new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+          });
+
+        const base64 = await toBase64(blob);
+        setBase64Image(base64);
+
+        const formData = new FormData();
+        formData.append("image", blob, "ktp.jpeg");
+
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/ktp/extract`,
           {
@@ -335,7 +342,7 @@ export function KtpCapture() {
 
         const responseText = await response.text();
         console.log("Response from API:", responseText);
-        console.log(returnApp);
+
         if (response.ok) {
           const urlParams = new URLSearchParams(window.location.search);
           const returnApp = urlParams.get("returnApp");
@@ -367,26 +374,19 @@ export function KtpCapture() {
         console.error("Error during KTP capture:", error);
         setErrorMessage("Gagal mengunggah KTP. Silakan coba lagi.");
       } finally {
+        // Clean up resources properly
         setIsCapturing(false);
-      }
 
-      if (wsRef.current) {
-        wsRef.current.close();
-        console.log("WebSocket connection closed.");
-      }
+        // Close WebSocket with proper status
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.close(1000, "Capture process completed");
+        }
 
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        console.log("Camera stream stopped.");
-      }
-      if (wsRef.current) {
-        wsRef.current.close();
-        console.log("WebSocket connection closed.");
-      }
-
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        console.log("Camera stream stopped.");
+        // Stop camera stream
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          console.log("Camera stream stopped.");
+        }
       }
     }, "image/jpeg");
   };
