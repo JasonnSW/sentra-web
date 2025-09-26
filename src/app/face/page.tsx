@@ -139,6 +139,7 @@ export default function FacePositioningPage() {
         ctx.drawImage(video, 0, 0);
 
         // Convert to base64 instead of blob
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const base64Image = canvas.toDataURL("image/jpeg", 0.8);
         // Remove data URL prefix to get just the base64 part
         const base64Data = base64Image.split(",")[1];
@@ -150,7 +151,7 @@ export default function FacePositioningPage() {
     }
     frameIntervalRef.current = setTimeout(sendFrames, 4500);
   };
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (typeof window === "undefined") return;
     const ws = new WebSocket(
