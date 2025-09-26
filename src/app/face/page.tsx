@@ -133,25 +133,28 @@ export default function FacePositioningPage() {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       const ctx = canvas.getContext("2d");
+
       if (ctx && video.videoWidth && video.videoHeight) {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
+
         ctx.drawImage(video, 0, 0);
 
-        // Convert to base64 instead of blob
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const base64Image = canvas.toDataURL("image/jpeg", 0.8);
-        // Remove data URL prefix to get just the base64 part
-        const base64Data = base64Image.split(",")[1];
-
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          wsRef.current.send(base64Data);
-        }
+        canvas.toBlob((blob) => {
+          if (
+            blob &&
+            wsRef.current &&
+            wsRef.current.readyState === WebSocket.OPEN
+          ) {
+            wsRef.current.send(blob);
+          }
+        }, "image/jpeg");
       }
     }
+
     frameIntervalRef.current = setTimeout(sendFrames, 4500);
   };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const ws = new WebSocket(
