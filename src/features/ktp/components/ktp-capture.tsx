@@ -38,8 +38,11 @@ export function KtpCapture() {
     if (typeof window === "undefined") return;
 
     const params = new URLSearchParams(window.location.search);
-    const ra = new URLSearchParams(window.location.search).get("returnApp");
-    if (ra) setReturnApp(ra);
+    const returnTo = params.get("returnTo");
+
+    if (returnTo) {
+      setReturnApp(returnTo);
+    }
   }, []);
 
   // Function to request camera access specifically
