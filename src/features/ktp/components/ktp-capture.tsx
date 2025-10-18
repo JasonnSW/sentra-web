@@ -37,12 +37,9 @@ export function KtpCapture() {
     // Skip this effect during SSR
     if (typeof window === "undefined") return;
 
-    const params = new URLSearchParams(window.location.search);
-    const returnTo = params.get("returnTo");
-
-    if (returnTo) {
-      setReturnApp(returnTo);
-    }
+    // const params = new URLSearchParams(window.location.search);
+    const ra = new URLSearchParams(window.location.search).get("returnApp");
+    if (ra) setReturnApp(ra);
   }, []);
 
   // Function to request camera access specifically
