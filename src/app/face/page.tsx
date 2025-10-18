@@ -60,32 +60,24 @@ export default function FacePositioningPage() {
           "Wajah tidak terdeteksi. Mohon posisikan wajah Anda di depan kamera.";
         break;
       // In speakInstructions function, READY case
-      case "READY": {
-        // JANGAN set message, supaya blok TTS di bawah tidak jalan
-        message = "";
+      case "READY":
+        message = "Posisi wajah sudah tepat. Mohon tunggu sebentar.";
 
+        // Directly redirect to mobile app like KTP detection without waiting for speech synthesis
         const urlParams = new URLSearchParams(window.location.search);
-        const ret = urlParams.get("returnApp") ?? returnApp ?? null;
+        const returnApp = urlParams.get("returnApp");
 
-        const target = ret
-          ? (() => {
-              // ret bisa "myapp://..." atau "https://link.domainkamu.com/..."
-              // kalau perlu tambahkan query di sini
-              try {
-                const u = new URL(ret);
-                u.searchParams.set("status", "verified");
-                return u.toString();
-              } catch {
-                // kalau ret bukan URL valid, fallback ke success page
-                return "/verification-success";
-              }
-            })()
-          : "/verification-success";
+        if (returnApp) {
+          const deepLink = new URL(returnApp);
+          deepLink.searchParams.set("status", "verified");
 
-        // langsung cleanup & redirect
-        cleanupAndNavigate(target);
+          console.log("Executing redirect to:", deepLink.toString());
+          window.location.href = deepLink.toString();
+        } else {
+          // If no return app, go to success page
+          window.location.href = "/verification-success";
+        }
         break;
-      }
 
       case "ADJUST":
         if (instructions.length > 0) {
@@ -281,45 +273,6 @@ export default function FacePositioningPage() {
 
     return "Memposisikan wajah...";
   };
-
-  // cegah redirect dobel
-  const hasNavigatedRef = useRef(false);
-
-  function cleanupAndNavigate(targetUrl: string) {
-    if (hasNavigatedRef.current) return;
-    hasNavigatedRef.current = true;
-
-    // stop loop frame
-    if (frameIntervalRef.current) {
-      clearTimeout(frameIntervalRef.current);
-    }
-
-    // tutup WS
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      try {
-        wsRef.current.close(1000, "READY - navigating");
-      } catch {}
-    }
-
-    // stop kamera
-    if (streamRef.current) {
-      try {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-      } catch {}
-    }
-
-    // hentikan TTS
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      try {
-        window.speechSynthesis.cancel();
-      } catch {}
-    }
-
-    // sedikit delay supaya event loop selesai, lalu replace (tanpa menambah history)
-    setTimeout(() => {
-      window.location.replace(targetUrl);
-    }, 50);
-  }
 
   // Determine the border color based on status
   const circleBorderColor =
